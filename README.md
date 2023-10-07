@@ -1,4 +1,4 @@
-# Program for easyer command line navigating
+# Program for easier command line navigating
 
 ![Screenshot2](https://github.com/JikoUnderscore/navigatecl/assets/59426055/0922ddc6-2c47-4064-af0f-bd5730b5093b)
 
