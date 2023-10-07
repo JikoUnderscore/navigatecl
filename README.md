@@ -12,11 +12,11 @@ run program from `nv.ps1` or `nv.sh` (linux untested and GPT genereted)
 
 ### Hotkeys
 
-| Left-aligned | Center-aligned | 
+| Commad | Description | 
 |:-------------|:--------------:|
-| Shift+Tab(Backtab)         | Move back currend file tree         |
-| Tab         | Move forword currend file tree to last dir went         |
-| F1         | auto comleate if there is one item         |
-| Backspace         | delete input         |
-| Enter         | Enter folder         |
-| Esc         | cd to curent navigated folder|
+| Shift+Tab(Backtab)            | Move back currend file tree         |
+| Tab                           | Move forword currend file tree to last dir went         |
+| F1                            | Auto comleate if there is one item         |
+| Backspace                     | Delete input         |
+| Enter                         | Enter folder         |
+| Esc                           | `cd` to curent navigated folder|
