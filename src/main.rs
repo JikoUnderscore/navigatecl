@@ -145,7 +145,11 @@ fn main() {
                 eprintln!(">>>{}", folder_search);
 
                 update_stuff_infolder(&split[0..dir_depth], &mut cash);
-                let (cursor_x, cursor_y) = print_while_geting_input(&cash, &split, dir_depth, &folder_search, &mut auto_compleate);
+                let (cursor_x, cursor_y) = print_while_geting_input(
+                    cash.get(&split[0..dir_depth]).unwrap(),
+                    &folder_search,
+                    &mut auto_compleate,
+                );
 
                 crossterm::execute!(
                     stderr,
@@ -158,9 +162,11 @@ fn main() {
     }
 }
 
-fn print_while_geting_input(cash: &HashMap<&[String], Vec<(char, String)>>, split: &Vec<String>, dir_depth: usize, folder_search: &String, auto_compleate: &mut Option<String>) -> (u16, u16) {
-    let stuffs = cash.get( &split[0..dir_depth] ).unwrap();
-
+fn print_while_geting_input(
+    stuffs: &[(char, String)],
+    folder_search: &str,
+    auto_compleate: &mut Option<String>,
+) -> (u16, u16) {
     let (cursor_x, cursor_y) = crossterm::cursor::position().unwrap();
 
     let (_, size_y) = crossterm::terminal::size().unwrap();
@@ -171,7 +177,7 @@ fn print_while_geting_input(cash: &HashMap<&[String], Vec<(char, String)>>, spli
     let left_rows_till_end_of_terminal = size_y - cursor_y - 3;
 
     'printloop: for (file_emote, stuf) in stuffs.iter() {
-        if stuf.contains(folder_search.as_str()) {
+        if stuf.contains(folder_search) {
             eprintln!("{} {}", file_emote, stuf);
             if n_printed >= left_rows_till_end_of_terminal {
                 eprintln!("...");
@@ -266,7 +272,6 @@ fn print_while_tabing<'s>(
             let emote = path.0;
             let file_name = path.1.as_str();
 
-            
             let file_len = path.1.len();
             let end = if file_len < MAX_FILE_LEN {
                 file_len
@@ -275,7 +280,6 @@ fn print_while_tabing<'s>(
             };
 
             let file_name_unicode = check_for_unicode_filename(file_name, end);
-
 
             if n_rows_printed >= left_rows_till_end_of_terminal {
                 eprint!("...");
@@ -314,8 +318,6 @@ fn print_while_tabing<'s>(
             let emote = if file_type.is_dir() { '📁' } else { '📃' };
 
             sb.push((emote, file.to_string_lossy().to_lowercase()));
-
-
 
             let file_len = file.len();
 
