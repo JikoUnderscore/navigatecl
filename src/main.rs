@@ -34,7 +34,7 @@ fn main() {
 
     let mut dir_depth = split.len();
 
-    print_stuff_in_folder(&split[0..dir_depth], &mut cash);
+    print_stuff_while_tabing(&split[0..dir_depth], &mut cash);
 
     let mut folder_search = String::with_capacity(50);
 
@@ -59,7 +59,7 @@ fn main() {
                 }
 
                 // println!("{:?}", &split[0..dir_depth]);
-                print_stuff_in_folder(&split[0..dir_depth], &mut cash);
+                print_stuff_while_tabing(&split[0..dir_depth], &mut cash);
             }
             event::KeyCode::Tab => {
                 if dir_depth < split.len() {
@@ -67,25 +67,20 @@ fn main() {
                 }
 
                 // println!("{:?}", &split[0..dir_depth]);
-                print_stuff_in_folder(&split[0..dir_depth], &mut cash);
+                print_stuff_while_tabing(&split[0..dir_depth], &mut cash);
             }
 
             event::KeyCode::F(1) => {
-                if let Some(mut ac) =   auto_compleate{
-                let (cursor_x, cursor_y) = crossterm::cursor::position().unwrap();
+                if let Some(mut ac) = auto_compleate {
+                    let (cursor_x, cursor_y) = crossterm::cursor::position().unwrap();
 
                     std::mem::swap(&mut folder_search, &mut ac);
-                    auto_compleate= None;
-                eprintln!(">>>{}", folder_search);
+                    auto_compleate = None;
+                    eprintln!(">>>{}", folder_search);
 
-                crossterm::execute!(
-                    stderr,
-                    crossterm::cursor::MoveTo(cursor_x, cursor_y), 
-                )
-                .unwrap();
+                    crossterm::execute!(stderr, crossterm::cursor::MoveTo(cursor_x, cursor_y),)
+                        .unwrap();
                 }
-              
-
             }
 
             event::KeyCode::Backspace => {
@@ -96,39 +91,36 @@ fn main() {
 
                 eprintln!(">>>{}", folder_search);
 
-                if folder_search.len() > 1 {
-                    update_stuff_infolder(&split[0..dir_depth], &mut cash);
+                // if folder_search.len() > 1 {
+                //     update_stuff_infolder(&split[0..dir_depth], &mut cash);
 
-                    let stuffs = cash.get(&split[0..dir_depth]).unwrap();
+                //     let stuffs = cash.get(&split[0..dir_depth]).unwrap();
 
-                    let (_, size_y) = crossterm::terminal::size().unwrap();
+                //     let (_, size_y) = crossterm::terminal::size().unwrap();
 
-                    let mut n_printed = 0;
+                //     let mut n_printed = 0;
 
-                    let left_rows_till_end_of_terminal = size_y - cursor_y - 3; // Mimus `3` one for `eprintln!("...");` print; one for it start counting form next line; one for when entering char it goes to the next line i think
+                //     let left_rows_till_end_of_terminal = size_y - cursor_y - 3; // Mimus `3` one for `eprintln!("...");` print; one for it start counting form next line; one for when entering char it goes to the next line i think
 
-                    'printloop: for (file_emote, stuf) in stuffs.iter() {
-                        if stuf.contains(folder_search.as_str()) {
-                            eprintln!("{} {}", file_emote, stuf);
-                            if n_printed >= left_rows_till_end_of_terminal {
-                                eprintln!("...");
-                                break 'printloop;
-                            }
-                            n_printed += 1;
-                            auto_compleate = if n_printed == 1 {
-                                Some(stuf.clone())
-                            } else {
-                                None
-                            };
-                        }
-                    }
-                }
+                //     'printloop: for (file_emote, stuf) in stuffs.iter() {
+                //         if stuf.contains(folder_search.as_str()) {
+                //             eprintln!("{} {}", file_emote, stuf);
+                //             if n_printed >= left_rows_till_end_of_terminal {
+                //                 eprintln!("...");
+                //                 break 'printloop;
+                //             }
+                //             n_printed += 1;
+                //             auto_compleate = if n_printed == 1 {
+                //                 Some(stuf.clone())
+                //             } else {
+                //                 None
+                //             };
+                //         }
+                //     }
+                // }
 
-                crossterm::execute!(
-                    stderr,
-                    crossterm::cursor::MoveTo(cursor_x, cursor_y), // and here we dont
-                )
-                .unwrap();
+                crossterm::execute!(stderr, crossterm::cursor::MoveTo(cursor_x, cursor_y),)
+                    .unwrap();
             }
 
             event::KeyCode::Enter => unsafe {
@@ -144,7 +136,7 @@ fn main() {
 
                         dir_depth = split.len();
 
-                        print_stuff_in_folder(&split[0..dir_depth], &mut cash);
+                        print_stuff_while_tabing(&split[0..dir_depth], &mut cash);
                     }
                 }
             },
@@ -245,7 +237,7 @@ fn update_stuff_infolder<'s>(
     }
 }
 
-fn print_stuff_in_folder<'s>(
+fn print_stuff_while_tabing<'s>(
     slice: &'s [String],
     cash: &mut HashMap<&'s [String], Vec<(char, String)>>,
 ) {
@@ -262,29 +254,33 @@ fn print_stuff_in_folder<'s>(
     }
     eprintln!();
 
-
     let (_, cursor_y) = crossterm::cursor::position().unwrap();
 
     let (_, size_y) = crossterm::terminal::size().unwrap();
 
     let mut n_rows_printed = 0;
 
-    let left_rows_till_end_of_terminal = size_y - cursor_y - 3; 
+    let left_rows_till_end_of_terminal = size_y - cursor_y - 5;
 
-
-
+    const NUMNER_OF_ITEM_POER_ROW: u8 = 7;
 
     if let Some(v) = cash.get(slice) {
         let mut i = 0;
 
-         for path in v {
+        for path in v {
             let emote = path.0;
             let file_len = path.1.len();
             let file_name = path.1.as_str();
-            if i == 5 {
+
+            if n_rows_printed >= left_rows_till_end_of_terminal {
+                eprint!("...");
+                break;
+            }
+
+            if i == NUMNER_OF_ITEM_POER_ROW {
                 eprintln!();
                 i = 0;
-            n_rows_printed += 1;
+                n_rows_printed += 1;
 
             }
 
@@ -295,14 +291,14 @@ fn print_stuff_in_folder<'s>(
             };
 
             let file_name_unicode = check_for_unicode_filename(file_name, end);
-            
+
             if n_rows_printed >= left_rows_till_end_of_terminal {
                 eprint!("...");
-                break ;
+                break;
             }
 
             eprint!("{} {:<20}", emote, file_name_unicode);
-            
+
             i += 1;
         }
     } else {
@@ -319,21 +315,27 @@ fn print_stuff_in_folder<'s>(
 
         let mut is_printing_done = false;
 
-
         for path in paths {
             let entry = path.unwrap();
             let p = entry.path();
 
             let file_type = entry.file_type().unwrap();
             let emote = if file_type.is_dir() { '📁' } else { '📄' };
+
+            if !is_printing_done && n_rows_printed >= left_rows_till_end_of_terminal {
+                eprint!("...");
+                is_printing_done = true;
+            }
+
             if !is_printing_done {
-                if i == 5 {
-                    eprintln!();
+                if i == NUMNER_OF_ITEM_POER_ROW {
+                    if !is_printing_done {
+                        eprintln!();
+                    }
                     i = 0;
-                n_rows_printed += 1;
+                    n_rows_printed += 1;
                 }
             }
-      
 
             let file = p.file_name().unwrap();
             let file_len = file.len();
@@ -349,10 +351,6 @@ fn print_stuff_in_folder<'s>(
 
             let file_name = check_for_unicode_filename(f, end);
 
-            if !is_printing_done && n_rows_printed >= left_rows_till_end_of_terminal {
-                eprint!("...");
-                is_printing_done = true;
-            }
             if !is_printing_done {
                 eprint!("{} {:<20}", emote, file_name);
             }
