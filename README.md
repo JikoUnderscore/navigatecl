@@ -21,9 +21,12 @@ run program from `nv.ps1` or `nv.sh` (linux untested and ChatGPT genereted)
 | Enter                         | Enter folder         |
 | Esc                           | `cd` to curent navigated folder|
 
+---
+Set-Alias z C:\Users\Underscore\cl\nv.ps1
 
 ---
 TODO:  
-[ ] update folder contents  
-[ ] print after deleting letter  
-[ ] fullscreen support  
+- [ ] update folder contents  
+- [ ] print after deleting letter  
+- [ ] fullscreen support  
+- [ ] (Windows) change drive letter
