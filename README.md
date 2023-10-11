@@ -8,7 +8,7 @@
 
 ### Use
 
-run program from `nv.ps1` or `nv.sh` (linux untested and GPT genereted)
+run program from `nv.ps1` or `nv.sh` (linux untested and ChatGPT genereted)
 
 ### Hotkeys
 
@@ -22,8 +22,8 @@ run program from `nv.ps1` or `nv.sh` (linux untested and GPT genereted)
 | Esc                           | `cd` to curent navigated folder|
 
 
-
-TODO:
-[ ] update folder contents
-[ ] print after deleting letter
-[ ] fullscreen support
+---
+TODO:  
+[ ] update folder contents  
+[ ] print after deleting letter  
+[ ] fullscreen support  
