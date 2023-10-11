@@ -20,3 +20,10 @@ run program from `nv.ps1` or `nv.sh` (linux untested and GPT genereted)
 | Backspace                     | Delete input         |
 | Enter                         | Enter folder         |
 | Esc                           | `cd` to curent navigated folder|
+
+
+
+TODO:
+[ ] update folder contents
+[ ] print after deleting letter
+[ ] fullscreen support
