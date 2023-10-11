@@ -22,7 +22,7 @@ run program from `nv.ps1` or `nv.sh` (linux untested and ChatGPT genereted)
 | Esc                           | `cd` to curent navigated folder|
 
 ---
-Set-Alias z C:\Users\Underscore\cl\nv.ps1
+Set-Alias z path\to\cl\nv.ps1
 
 ---
 TODO:  
@@ -30,3 +30,4 @@ TODO:
 - [ ] print after deleting letter  
 - [ ] fullscreen support  
 - [ ] (Windows) change drive letter
+- [ ] cd into link/shortcut
