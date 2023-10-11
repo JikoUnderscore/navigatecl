@@ -34,7 +34,7 @@ fn main() {
 
     let mut dir_depth = split.len();
 
-    print_stuff_while_tabing(&split[0..dir_depth], &mut cash);
+    print_while_tabing(&split[0..dir_depth], &mut cash);
 
     let mut folder_search = String::with_capacity(50);
 
@@ -48,26 +48,18 @@ fn main() {
         input = get_input();
 
         // update
-
         match input.code {
-            // event::KeyCode::Char('c') if input.modifiers == event::KeyModifiers::CONTROL => {
-            //     is_running = false;
-            // }
             event::KeyCode::BackTab => {
                 if dir_depth > 1 {
                     dir_depth -= 1;
                 }
-
-                // println!("{:?}", &split[0..dir_depth]);
-                print_stuff_while_tabing(&split[0..dir_depth], &mut cash);
+                print_while_tabing(&split[0..dir_depth], &mut cash);
             }
             event::KeyCode::Tab => {
                 if dir_depth < split.len() {
                     dir_depth += 1;
                 }
-
-                // println!("{:?}", &split[0..dir_depth]);
-                print_stuff_while_tabing(&split[0..dir_depth], &mut cash);
+                print_while_tabing(&split[0..dir_depth], &mut cash);
             }
 
             event::KeyCode::F(1) => {
@@ -136,7 +128,7 @@ fn main() {
 
                         dir_depth = split.len();
 
-                        print_stuff_while_tabing(&split[0..dir_depth], &mut cash);
+                        print_while_tabing(&split[0..dir_depth], &mut cash);
                     }
                 }
             },
@@ -153,32 +145,7 @@ fn main() {
                 eprintln!(">>>{}", folder_search);
 
                 update_stuff_infolder(&split[0..dir_depth], &mut cash);
-                let stuffs = cash.get(&split[0..dir_depth]).unwrap();
-
-                let (cursor_x, cursor_y) = crossterm::cursor::position().unwrap();
-
-                let (_, size_y) = crossterm::terminal::size().unwrap();
-
-                let mut n_printed = 0;
-
-                let left_rows_till_end_of_terminal = size_y - cursor_y - 3; // Mimus `3` one for `eprintln!("...");` print; one for it start counting form next line; one for when entering char it goes to the next line i think
-
-                'printloop: for (file_emote, stuf) in stuffs.iter() {
-                    if stuf.contains(folder_search.as_str()) {
-                        eprintln!("{} {}", file_emote, stuf);
-                        if n_printed >= left_rows_till_end_of_terminal {
-                            eprintln!("...");
-                            break 'printloop;
-                        }
-                        n_printed += 1;
-
-                        auto_compleate = if n_printed == 1 {
-                            Some(stuf.clone())
-                        } else {
-                            None
-                        };
-                    }
-                }
+                let (cursor_x, cursor_y) = print_while_geting_input(&cash, &split, dir_depth, &folder_search, &mut auto_compleate);
 
                 crossterm::execute!(
                     stderr,
@@ -191,19 +158,47 @@ fn main() {
     }
 }
 
+fn print_while_geting_input(cash: &HashMap<&[String], Vec<(char, String)>>, split: &Vec<String>, dir_depth: usize, folder_search: &String, auto_compleate: &mut Option<String>) -> (u16, u16) {
+    let stuffs = cash.get( &split[0..dir_depth] ).unwrap();
+
+    let (cursor_x, cursor_y) = crossterm::cursor::position().unwrap();
+
+    let (_, size_y) = crossterm::terminal::size().unwrap();
+
+    let mut n_printed = 0;
+
+    // Mimus `3` one for `eprintln!("...");` print; one for it start counting form next line; one for when entering char it goes to the next line i think
+    let left_rows_till_end_of_terminal = size_y - cursor_y - 3;
+
+    'printloop: for (file_emote, stuf) in stuffs.iter() {
+        if stuf.contains(folder_search.as_str()) {
+            eprintln!("{} {}", file_emote, stuf);
+            if n_printed >= left_rows_till_end_of_terminal {
+                eprintln!("...");
+                break 'printloop;
+            }
+            n_printed += 1;
+
+            *auto_compleate = if n_printed == 1 {
+                Some(stuf.clone())
+            } else {
+                None
+            };
+        }
+    }
+    (cursor_x, cursor_y)
+}
+
 fn get_input() -> Input {
     loop {
         let keyevent = event::read().expect("shit");
-        match keyevent {
-            event::Event::Key(key) => {
-                if key.kind == event::KeyEventKind::Press {
-                    return Input {
-                        code: key.code,
-                        // modifiers: key.modifiers,
-                    };
-                }
+        if let event::Event::Key(key) = keyevent {
+            if key.kind == event::KeyEventKind::Press {
+                return Input {
+                    code: key.code,
+                    // modifiers: key.modifiers,
+                };
             }
-            _ => {}
         }
     }
 }
@@ -237,7 +232,7 @@ fn update_stuff_infolder<'s>(
     }
 }
 
-fn print_stuff_while_tabing<'s>(
+fn print_while_tabing<'s>(
     slice: &'s [String],
     cash: &mut HashMap<&'s [String], Vec<(char, String)>>,
 ) {
@@ -269,21 +264,10 @@ fn print_stuff_while_tabing<'s>(
 
         for path in v {
             let emote = path.0;
-            let file_len = path.1.len();
             let file_name = path.1.as_str();
 
-            if n_rows_printed >= left_rows_till_end_of_terminal {
-                eprint!("...");
-                break;
-            }
-
-            if i == NUMNER_OF_ITEM_POER_ROW {
-                eprintln!();
-                i = 0;
-                n_rows_printed += 1;
-
-            }
-
+            
+            let file_len = path.1.len();
             let end = if file_len < MAX_FILE_LEN {
                 file_len
             } else {
@@ -292,9 +276,15 @@ fn print_stuff_while_tabing<'s>(
 
             let file_name_unicode = check_for_unicode_filename(file_name, end);
 
+
             if n_rows_printed >= left_rows_till_end_of_terminal {
                 eprint!("...");
                 break;
+            }
+            if i == NUMNER_OF_ITEM_POER_ROW {
+                eprintln!();
+                i = 0;
+                n_rows_printed += 1;
             }
 
             eprint!("{} {:<20}", emote, file_name_unicode);
@@ -319,25 +309,14 @@ fn print_stuff_while_tabing<'s>(
             let entry = path.unwrap();
             let p = entry.path();
 
-            let file_type = entry.file_type().unwrap();
-            let emote = if file_type.is_dir() { '📁' } else { '📄' };
-
-            if !is_printing_done && n_rows_printed >= left_rows_till_end_of_terminal {
-                eprint!("...");
-                is_printing_done = true;
-            }
-
-            if !is_printing_done {
-                if i == NUMNER_OF_ITEM_POER_ROW {
-                    if !is_printing_done {
-                        eprintln!();
-                    }
-                    i = 0;
-                    n_rows_printed += 1;
-                }
-            }
-
             let file = p.file_name().unwrap();
+            let file_type = entry.file_type().unwrap();
+            let emote = if file_type.is_dir() { '📁' } else { '📃' };
+
+            sb.push((emote, file.to_string_lossy().to_lowercase()));
+
+
+
             let file_len = file.len();
 
             let end = if file_len < MAX_FILE_LEN {
@@ -345,14 +324,22 @@ fn print_stuff_while_tabing<'s>(
             } else {
                 MAX_FILE_LEN
             };
-            sb.push((emote, file.to_string_lossy().to_lowercase()));
 
-            let f = file.to_str().unwrap();
+            let file_name_unicode = check_for_unicode_filename(file.to_str().unwrap(), end);
 
-            let file_name = check_for_unicode_filename(f, end);
-
+            if !is_printing_done && n_rows_printed >= left_rows_till_end_of_terminal {
+                eprint!("...");
+                is_printing_done = true;
+            }
+            if !is_printing_done && i == NUMNER_OF_ITEM_POER_ROW {
+                if !is_printing_done {
+                    eprintln!();
+                }
+                i = 0;
+                n_rows_printed += 1;
+            }
             if !is_printing_done {
-                eprint!("{} {:<20}", emote, file_name);
+                eprint!("{} {:<20}", emote, file_name_unicode);
             }
             i += 1;
         }
