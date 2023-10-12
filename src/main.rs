@@ -1,9 +1,15 @@
+use std::rc::Rc;
+
 use crossterm::{
     cursor::MoveTo,
     event,
     terminal::{Clear, ClearType},
 };
 use hashbrown::HashMap;
+
+static FOLDER_ICON: char = '📁';
+static FILE_ICON: char = '📃';
+
 // https://stackoverflow.com/questions/40426307/change-terminal-cursor-position-in-rust
 // https://github.com/crossterm-rs/crossterm
 
@@ -12,10 +18,7 @@ fn main() {
     let mut stderr = std::io::stderr();
 
     let binding = curent_dir.to_string_lossy();
-    let mut split = binding
-        .split('\\')
-        .map(|s| s.to_string())
-        .collect::<Vec<_>>();
+    let mut split = binding.split('\\').map(|s| Rc::from(s)).collect::<Vec<_>>();
     split.drain(0..3);
 
     let split_ptr: *mut _ = &mut split;
@@ -123,7 +126,7 @@ fn main() {
                 if let Ok(file_metadata) = std::fs::metadata(path.as_str()) {
                     if file_metadata.is_dir() {
                         (*split_ptr).truncate(dir_depth);
-                        (*split_ptr).push(folder_search.clone());
+                        (*split_ptr).push(Rc::from(folder_search.clone()));
                         folder_search.clear();
 
                         dir_depth = split.len();
@@ -144,7 +147,12 @@ fn main() {
 
                 eprintln!(">>>{}", folder_search);
 
-                update_stuff_infolder(&split[0..dir_depth], &mut cash);
+                if cash.get(&split[0..dir_depth]).is_none() {
+                    let sbuilder: Vec<(char, String)> =
+                        get_update_stuff_in_folder(&split[0..dir_depth]);
+                    cash.insert(&split[0..dir_depth], sbuilder);
+                }
+
                 let (cursor_x, cursor_y) = print_while_geting_input(
                     cash.get(&split[0..dir_depth]).unwrap(),
                     &folder_search,
@@ -200,55 +208,54 @@ fn get_input() -> Input {
         let keyevent = event::read().expect("shit");
         if let event::Event::Key(key) = keyevent {
             if key.kind == event::KeyEventKind::Press {
-                return Input {
-                    code: key.code,
-                    // modifiers: key.modifiers,
-                };
+                return Input { code: key.code };
             }
         }
     }
 }
 
-fn update_stuff_infolder<'s>(
-    slice: &'s [String],
-    cash: &mut HashMap<&'s [String], Vec<(char, String)>>,
-) {
-    if cash.get(slice).is_none() {
-        let new_dir = if slice.len() == 1 {
-            format!("{}\\", slice[0])
-        } else {
-            slice.join("\\")
-        };
-        let paths = std::fs::read_dir(new_dir).unwrap();
+fn get_update_stuff_in_folder<'s>(
+    slice: &'s [Rc<str>],
+    // cash: &HashMap<&'_ [Rc<str>], Vec<(char, String)>>,
+) -> Vec<(char, String)> {
+    // if cash.get(slice).is_some() {
+    //     return;
+    // }
+    let new_dir = if slice.len() == 1 {
+        format!("{}\\", slice[0])
+    } else {
+        slice.join("\\")
+    };
+    let paths = std::fs::read_dir(new_dir).unwrap();
 
-        let mut sb = Vec::with_capacity(50);
+    let mut sbuilder = Vec::with_capacity(50);
 
-        for path in paths {
-            let entry = path.unwrap();
-            let p = entry.path();
+    for path in paths {
+        let entry = path.unwrap();
+        let p = entry.path();
 
-            let file = p.file_name().unwrap();
-            let file_type = entry.file_type().unwrap();
-            let emote = if file_type.is_dir() { '📁' } else { '📃' };
+        let file = p.file_name().unwrap();
+        let file_type = entry.file_type().unwrap();
+        let emote = if file_type.is_dir() { FOLDER_ICON } else { FILE_ICON };
 
-            sb.push((emote, file.to_string_lossy().into_owned()));
-        }
-
-        cash.insert(slice, sb);
+        sbuilder.push((emote, file.to_string_lossy().into_owned()));
     }
+
+    return sbuilder;
 }
 
+const MAX_FILE_LEN: usize = 20;
+const NUMNER_OF_ITEM_POER_ROW: u8 = 7;
+
 fn print_while_tabing<'s>(
-    slice: &'s [String],
-    cash: &mut HashMap<&'s [String], Vec<(char, String)>>,
+    slice: &'s [Rc<str>],
+    cash: &mut HashMap<&'s [Rc<str>], Vec<(char, String)>>,
 ) {
     let mut stderr = std::io::stderr();
 
     crossterm::execute!(stderr, MoveTo(0, 0)).unwrap();
 
     crossterm::execute!(stderr, Clear(ClearType::All)).unwrap();
-
-    const MAX_FILE_LEN: usize = 20;
 
     for folder in slice {
         eprint!("{}\\", folder);
@@ -263,38 +270,8 @@ fn print_while_tabing<'s>(
 
     let left_rows_till_end_of_terminal = size_y - cursor_y - 5;
 
-    const NUMNER_OF_ITEM_POER_ROW: u8 = 7;
-
     if let Some(v) = cash.get(slice) {
-        let mut i = 0;
-
-        for path in v {
-            let emote = path.0;
-            let file_name = path.1.as_str();
-
-            let file_len = path.1.len();
-            let end = if file_len < MAX_FILE_LEN {
-                file_len
-            } else {
-                MAX_FILE_LEN
-            };
-
-            let file_name_unicode = check_for_unicode_filename(file_name, end);
-
-            if n_rows_printed >= left_rows_till_end_of_terminal {
-                eprint!("...");
-                break;
-            }
-            if i == NUMNER_OF_ITEM_POER_ROW {
-                eprintln!();
-                i = 0;
-                n_rows_printed += 1;
-            }
-
-            eprint!("{} {:<20}", emote, file_name_unicode);
-
-            i += 1;
-        }
+        tab_printing(v, &mut n_rows_printed, left_rows_till_end_of_terminal);
     } else {
         let new_dir = if slice.len() == 1 {
             format!("{}\\", slice[0])
@@ -305,7 +282,7 @@ fn print_while_tabing<'s>(
 
         let mut i = 0;
 
-        let mut sb = Vec::with_capacity(50);
+        let mut sbuilder = Vec::with_capacity(50);
 
         let mut is_printing_done = false;
 
@@ -315,9 +292,9 @@ fn print_while_tabing<'s>(
 
             let file = p.file_name().unwrap();
             let file_type = entry.file_type().unwrap();
-            let emote = if file_type.is_dir() { '📁' } else { '📃' };
+            let emote = if file_type.is_dir() { FOLDER_ICON } else { FILE_ICON };
 
-            sb.push((emote, file.to_string_lossy().to_lowercase()));
+            sbuilder.push((emote, file.to_string_lossy().to_lowercase()));
 
             let file_len = file.len();
 
@@ -345,7 +322,8 @@ fn print_while_tabing<'s>(
             }
             i += 1;
         }
-        cash.insert(slice, sb);
+
+        cash.insert(slice, sbuilder);
     }
 
     eprintln!();
@@ -354,6 +332,42 @@ fn print_while_tabing<'s>(
     //     crossterm::cursor::MoveTo(cursor_x, cursor_y - 1), // and here we do `-1`, i forgot why, i never knew why
     // )
     // .unwrap();
+}
+
+fn tab_printing(
+    v: &Vec<(char, String)>,
+    n_rows_printed: &mut u16,
+    left_rows_till_end_of_terminal: u16,
+) {
+    let mut i = 0;
+
+    for path in v {
+        let emote = path.0;
+        let file_name = path.1.as_str();
+
+        let file_len = path.1.len();
+        let end = if file_len < MAX_FILE_LEN {
+            file_len
+        } else {
+            MAX_FILE_LEN
+        };
+
+        let file_name_unicode = check_for_unicode_filename(file_name, end);
+
+        if *n_rows_printed >= left_rows_till_end_of_terminal {
+            eprint!("...");
+            break;
+        }
+        if i == NUMNER_OF_ITEM_POER_ROW {
+            eprintln!();
+            i = 0;
+            *n_rows_printed += 1;
+        }
+
+        eprint!("{} {:<20}", emote, file_name_unicode);
+
+        i += 1;
+    }
 }
 
 fn check_for_unicode_filename(f: &str, end: usize) -> &str {
