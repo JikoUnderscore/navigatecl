@@ -137,7 +137,7 @@ fn main() {
             },
 
             event::KeyCode::Esc => {
-                print!("{}", split[0..dir_depth].join("\\"));
+                print!("{}", split[3..dir_depth].join("\\"));
 
                 is_running = false;
             }
