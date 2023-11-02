@@ -1,3 +1,4 @@
+#![allow(clippy::needless_return)]
 use std::rc::Rc;
 
 use crossterm::{
@@ -18,8 +19,8 @@ fn main() {
     let mut stderr = std::io::stderr();
 
     let binding = curent_dir.to_string_lossy();
-    let mut split = binding.split('\\').map(|s| Rc::from(s)).collect::<Vec<_>>();
-    split.drain(0..3);
+    let mut split = binding.split('\\').map(Rc::from).collect::<Vec<_>>();
+    // split.drain(0..3);
 
     let split_ptr: *mut _ = &mut split;
 
@@ -32,7 +33,6 @@ fn main() {
     //     }
     //     )
     //     .collect::<Vec<_>>();
-
     let mut cash = HashMap::with_capacity(50);
 
     let mut dir_depth = split.len();
@@ -49,7 +49,6 @@ fn main() {
     while is_running {
         // events
         input = get_input();
-
         // update
         match input.code {
             event::KeyCode::BackTab => {
@@ -58,6 +57,7 @@ fn main() {
                 }
                 print_while_tabing(&split[0..dir_depth], &mut cash);
             }
+
             event::KeyCode::Tab => {
                 if dir_depth < split.len() {
                     dir_depth += 1;
@@ -214,8 +214,8 @@ fn get_input() -> Input {
     }
 }
 
-fn get_update_stuff_in_folder<'s>(
-    slice: &'s [Rc<str>],
+fn get_update_stuff_in_folder(
+    slice: &[Rc<str>],
     // cash: &HashMap<&'_ [Rc<str>], Vec<(char, String)>>,
 ) -> Vec<(char, String)> {
     // if cash.get(slice).is_some() {
@@ -236,7 +236,11 @@ fn get_update_stuff_in_folder<'s>(
 
         let file = p.file_name().unwrap();
         let file_type = entry.file_type().unwrap();
-        let emote = if file_type.is_dir() { FOLDER_ICON } else { FILE_ICON };
+        let emote = if file_type.is_dir() {
+            FOLDER_ICON
+        } else {
+            FILE_ICON
+        };
 
         sbuilder.push((emote, file.to_string_lossy().into_owned()));
     }
@@ -245,7 +249,7 @@ fn get_update_stuff_in_folder<'s>(
 }
 
 const MAX_FILE_LEN: usize = 20;
-const NUMNER_OF_ITEM_POER_ROW: u8 = 7;
+const NUMNER_OF_ITEM_POER_ROW: u16 = 7;
 
 fn print_while_tabing<'s>(
     slice: &'s [Rc<str>],
@@ -264,14 +268,22 @@ fn print_while_tabing<'s>(
 
     let (_, cursor_y) = crossterm::cursor::position().unwrap();
 
-    let (_, size_y) = crossterm::terminal::size().unwrap();
+    let (size_x, size_y) = crossterm::terminal::size().unwrap();
 
     let mut n_rows_printed = 0;
 
     let left_rows_till_end_of_terminal = size_y - cursor_y - 5;
 
+    let numer_of_items_per_row =
+        std::cmp::min((size_x / MAX_FILE_LEN as u16) - 1, NUMNER_OF_ITEM_POER_ROW);
+
     if let Some(v) = cash.get(slice) {
-        tab_printing(v, &mut n_rows_printed, left_rows_till_end_of_terminal);
+        tab_printing(
+            v,
+            &mut n_rows_printed,
+            left_rows_till_end_of_terminal,
+            numer_of_items_per_row,
+        );
     } else {
         let new_dir = if slice.len() == 1 {
             format!("{}\\", slice[0])
@@ -292,7 +304,11 @@ fn print_while_tabing<'s>(
 
             let file = p.file_name().unwrap();
             let file_type = entry.file_type().unwrap();
-            let emote = if file_type.is_dir() { FOLDER_ICON } else { FILE_ICON };
+            let emote = if file_type.is_dir() {
+                FOLDER_ICON
+            } else {
+                FILE_ICON
+            };
 
             sbuilder.push((emote, file.to_string_lossy().to_lowercase()));
 
@@ -310,7 +326,7 @@ fn print_while_tabing<'s>(
                 eprint!("...");
                 is_printing_done = true;
             }
-            if !is_printing_done && i == NUMNER_OF_ITEM_POER_ROW {
+            if !is_printing_done && i == numer_of_items_per_row {
                 if !is_printing_done {
                     eprintln!();
                 }
@@ -338,6 +354,7 @@ fn tab_printing(
     v: &Vec<(char, String)>,
     n_rows_printed: &mut u16,
     left_rows_till_end_of_terminal: u16,
+    numer_of_items_per_row: u16,
 ) {
     let mut i = 0;
 
@@ -358,7 +375,7 @@ fn tab_printing(
             eprint!("...");
             break;
         }
-        if i == NUMNER_OF_ITEM_POER_ROW {
+        if i == numer_of_items_per_row {
             eprintln!();
             i = 0;
             *n_rows_printed += 1;
