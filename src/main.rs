@@ -59,22 +59,21 @@ fn main() {
             }
 
             event::KeyCode::Tab => {
-                if dir_depth < split.len() {
-                    dir_depth += 1;
-                }
-                print_while_tabing(&split[0..dir_depth], &mut cash);
-            }
+                if input.modifiers == event::KeyModifiers::CONTROL {
+                    if let Some(mut ac) = auto_compleate {
+                        let (cursor_x, cursor_y) = crossterm::cursor::position().unwrap();
 
-            event::KeyCode::F(1) => {
-                if let Some(mut ac) = auto_compleate {
-                    let (cursor_x, cursor_y) = crossterm::cursor::position().unwrap();
+                        std::mem::swap(&mut folder_search, &mut ac);
+                        auto_compleate = None;
+                        eprintln!(">>>{}", folder_search);
 
-                    std::mem::swap(&mut folder_search, &mut ac);
-                    auto_compleate = None;
-                    eprintln!(">>>{}", folder_search);
-
-                    crossterm::execute!(stderr, crossterm::cursor::MoveTo(cursor_x, cursor_y),)
-                        .unwrap();
+                        crossterm::execute!(stderr, crossterm::cursor::MoveTo(cursor_x, cursor_y),).unwrap();
+                    }
+                } else {
+                    if dir_depth < split.len() {
+                        dir_depth += 1;
+                    }
+                    print_while_tabing(&split[0..dir_depth], &mut cash);
                 }
             }
 
@@ -114,8 +113,7 @@ fn main() {
                 //     }
                 // }
 
-                crossterm::execute!(stderr, crossterm::cursor::MoveTo(cursor_x, cursor_y),)
-                    .unwrap();
+                crossterm::execute!(stderr, crossterm::cursor::MoveTo(cursor_x, cursor_y),).unwrap();
             }
 
             event::KeyCode::Enter => unsafe {
@@ -148,16 +146,11 @@ fn main() {
                 eprintln!(">>>{}", folder_search);
 
                 if cash.get(&split[0..dir_depth]).is_none() {
-                    let sbuilder: Vec<(char, String)> =
-                        get_update_stuff_in_folder(&split[0..dir_depth]);
+                    let sbuilder: Vec<(char, String)> = get_update_stuff_in_folder(&split[0..dir_depth]);
                     cash.insert(&split[0..dir_depth], sbuilder);
                 }
 
-                let (cursor_x, cursor_y) = print_while_geting_input(
-                    cash.get(&split[0..dir_depth]).unwrap(),
-                    &folder_search,
-                    &mut auto_compleate,
-                );
+                let (cursor_x, cursor_y) = print_while_geting_input(cash.get(&split[0..dir_depth]).unwrap(), &folder_search, &mut auto_compleate);
 
                 crossterm::execute!(
                     stderr,
@@ -170,11 +163,7 @@ fn main() {
     }
 }
 
-fn print_while_geting_input(
-    stuffs: &[(char, String)],
-    folder_search: &str,
-    auto_compleate: &mut Option<String>,
-) -> (u16, u16) {
+fn print_while_geting_input(stuffs: &[(char, String)], folder_search: &str, auto_compleate: &mut Option<String>) -> (u16, u16) {
     let (cursor_x, cursor_y) = crossterm::cursor::position().unwrap();
 
     let (_, size_y) = crossterm::terminal::size().unwrap();
@@ -193,11 +182,7 @@ fn print_while_geting_input(
             }
             n_printed += 1;
 
-            *auto_compleate = if n_printed == 1 {
-                Some(stuf.clone())
-            } else {
-                None
-            };
+            *auto_compleate = if n_printed == 1 { Some(stuf.clone()) } else { None };
         }
     }
     (cursor_x, cursor_y)
@@ -208,7 +193,10 @@ fn get_input() -> Input {
         let keyevent = event::read().expect("shit");
         if let event::Event::Key(key) = keyevent {
             if key.kind == event::KeyEventKind::Press {
-                return Input { code: key.code };
+                return Input {
+                    code: key.code,
+                    modifiers: key.modifiers,
+                };
             }
         }
     }
@@ -221,11 +209,7 @@ fn get_update_stuff_in_folder(
     // if cash.get(slice).is_some() {
     //     return;
     // }
-    let new_dir = if slice.len() == 1 {
-        format!("{}\\", slice[0])
-    } else {
-        slice.join("\\")
-    };
+    let new_dir = if slice.len() == 1 { format!("{}\\", slice[0]) } else { slice.join("\\") };
     let paths = std::fs::read_dir(new_dir).unwrap();
 
     let mut sbuilder = Vec::with_capacity(50);
@@ -236,11 +220,7 @@ fn get_update_stuff_in_folder(
 
         let file = p.file_name().unwrap();
         let file_type = entry.file_type().unwrap();
-        let emote = if file_type.is_dir() {
-            FOLDER_ICON
-        } else {
-            FILE_ICON
-        };
+        let emote = if file_type.is_dir() { FOLDER_ICON } else { FILE_ICON };
 
         sbuilder.push((emote, file.to_string_lossy().into_owned()));
     }
@@ -251,10 +231,7 @@ fn get_update_stuff_in_folder(
 const MAX_FILE_LEN: usize = 20;
 const NUMNER_OF_ITEM_POER_ROW: u16 = 7;
 
-fn print_while_tabing<'s>(
-    slice: &'s [Rc<str>],
-    cash: &mut HashMap<&'s [Rc<str>], Vec<(char, String)>>,
-) {
+fn print_while_tabing<'s>(slice: &'s [Rc<str>], cash: &mut HashMap<&'s [Rc<str>], Vec<(char, String)>>) {
     let mut stderr = std::io::stderr();
 
     crossterm::execute!(stderr, MoveTo(0, 0)).unwrap();
@@ -274,22 +251,12 @@ fn print_while_tabing<'s>(
 
     let left_rows_till_end_of_terminal = size_y - cursor_y - 5;
 
-    let numer_of_items_per_row =
-        std::cmp::min((size_x / MAX_FILE_LEN as u16) - 1, NUMNER_OF_ITEM_POER_ROW);
+    let numer_of_items_per_row = std::cmp::min((size_x / MAX_FILE_LEN as u16) - 1, NUMNER_OF_ITEM_POER_ROW);
 
     if let Some(v) = cash.get(slice) {
-        tab_printing(
-            v,
-            &mut n_rows_printed,
-            left_rows_till_end_of_terminal,
-            numer_of_items_per_row,
-        );
+        tab_printing(v, &mut n_rows_printed, left_rows_till_end_of_terminal, numer_of_items_per_row);
     } else {
-        let new_dir = if slice.len() == 1 {
-            format!("{}\\", slice[0])
-        } else {
-            slice.join("\\")
-        };
+        let new_dir = if slice.len() == 1 { format!("{}\\", slice[0]) } else { slice.join("\\") };
         let paths = std::fs::read_dir(new_dir).unwrap();
 
         let mut i = 0;
@@ -304,21 +271,13 @@ fn print_while_tabing<'s>(
 
             let file = p.file_name().unwrap();
             let file_type = entry.file_type().unwrap();
-            let emote = if file_type.is_dir() {
-                FOLDER_ICON
-            } else {
-                FILE_ICON
-            };
+            let emote = if file_type.is_dir() { FOLDER_ICON } else { FILE_ICON };
 
             sbuilder.push((emote, file.to_string_lossy().to_lowercase()));
 
             let file_len = file.len();
 
-            let end = if file_len < MAX_FILE_LEN {
-                file_len
-            } else {
-                MAX_FILE_LEN
-            };
+            let end = if file_len < MAX_FILE_LEN { file_len } else { MAX_FILE_LEN };
 
             let file_name_unicode = check_for_unicode_filename(file.to_str().unwrap(), end);
 
@@ -350,12 +309,7 @@ fn print_while_tabing<'s>(
     // .unwrap();
 }
 
-fn tab_printing(
-    v: &Vec<(char, String)>,
-    n_rows_printed: &mut u16,
-    left_rows_till_end_of_terminal: u16,
-    numer_of_items_per_row: u16,
-) {
+fn tab_printing(v: &Vec<(char, String)>, n_rows_printed: &mut u16, left_rows_till_end_of_terminal: u16, numer_of_items_per_row: u16) {
     let mut i = 0;
 
     for path in v {
@@ -363,11 +317,7 @@ fn tab_printing(
         let file_name = path.1.as_str();
 
         let file_len = path.1.len();
-        let end = if file_len < MAX_FILE_LEN {
-            file_len
-        } else {
-            MAX_FILE_LEN
-        };
+        let end = if file_len < MAX_FILE_LEN { file_len } else { MAX_FILE_LEN };
 
         let file_name_unicode = check_for_unicode_filename(file_name, end);
 
@@ -402,5 +352,5 @@ fn check_for_unicode_filename(f: &str, end: usize) -> &str {
 #[derive(Debug)]
 struct Input {
     pub code: event::KeyCode,
-    // pub modifiers: event::KeyModifiers,
+    pub modifiers: event::KeyModifiers,
 }

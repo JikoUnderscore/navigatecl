@@ -12,17 +12,17 @@ run program from `nv.ps1` or `nv.sh` (linux untested and ChatGPT genereted)
 
 ### Hotkeys
 
-| Commad | Description | 
-|:-------------|:--------------:|
-| Shift+Tab(Backtab)            | Move back currend file tree         |
-| Tab                           | Move forword currend file tree to last dir went         |
-| F1                            | Auto comleate if there is one item         |
-| Backspace                     | Delete input         |
-| Enter                         | Enter folder         |
-| Esc                           | `cd` to curent navigated folder|
+| Commad             |                   Description                   | 
+|:-------------------|:-----------------------------------------------:|
+| Shift+Tab(Backtab) |           Move back currend file tree           |
+| Tab                | Move forword currend file tree to last dir went |
+| Ctrl+Tab           |       Auto comleate if there is one item        |
+| Backspace          |                  Delete input                   |
+| Enter              |                  Enter folder                   |
+| Esc                |         `cd` to curent navigated folder         |
 
 ---
-Set-Alias z path\to\cl\nv.ps1
+Set-Alias z path\to\nv.ps1
 
 ---
 TODO:  
